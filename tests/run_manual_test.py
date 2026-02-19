@@ -17,36 +17,47 @@ async def run_test():
              patch("src.agents.researcher.ToolMemory"), \
              patch("src.agents.planner.PlannerAgent.create_plan", new_callable=AsyncMock) as mock_plan, \
              patch("src.agents.researcher.ResearcherAgent.run", new_callable=AsyncMock) as mock_research, \
-             patch("src.agents.coder.CoderAgent.run", new_callable=AsyncMock) as mock_code:
+             patch("src.agents.coder.CoderAgent.run", new_callable=AsyncMock) as mock_code, \
+             patch("src.agents.critic.CriticAgent.critique", new_callable=AsyncMock) as mock_critique, \
+             patch("src.agents.reflector.ReflectorAgent.reflect", new_callable=AsyncMock) as mock_reflect:
             
-            mock_plan.return_value = "1. Step one\n2. Step two"
-            mock_research.return_value = "Research found: X, Y, Z"
-            mock_code.return_value = "def hello(): print('world')"
+            # Setup mocks for a loop scenario: Fail once, then Pass
+            mock_plan.side_effect = ["Plan A", "Plan B (Fixed)"]
+            mock_research.return_value = "Research found."
+            mock_code.return_value = "Code"
+            mock_critique.side_effect = ["FAIL: Too simple", "PASS: Good job"]
+            mock_reflect.return_value = "Make it more complex."
 
             print("Initializing Orchestrator...")
             orchestrator = Orchestrator()
             
             print("Running workflow...")
             results = []
-            async for step in orchestrator.run_workflow("Build a hello world app"):
+            async for step in orchestrator.run_workflow("Build app"):
                 print(f"Step received: {step.keys()}")
                 results.append(step)
                 
-            # Verify results
+            # Expected sequence:
+            # 1. Planner (Plan A)
+            # 2. Researcher
+            # 3. Coder
+            # 4. Critic (Fail)
+            # 5. Reflector
+            # 6. Planner (Plan B)
+            # 7. Researcher
+            # 8. Coder
+            # 9. Critic (Pass)
+            
             print(f"Total steps: {len(results)}")
-            if len(results) != 3:
-                print("FAILED: Expected 3 steps")
-                return
-                
-            if results[0]["current_agent"] != "planner":
-                print(f"FAILED: Step 1 agent mismatch. Got {results[0]['current_agent']}")
+            if len(results) != 9:
+                print(f"FAILED: Expected 9 steps, got {len(results)}")
                 return
 
-            if results[2]["code_output"] != "def hello(): print('world')":
-                 print("FAILED: Code output mismatch")
+            if results[4]["current_agent"] != "reflector":
+                 print(f"FAILED: Expected reflector at step 5, got {results[4]['current_agent']}")
                  return
 
-            print("SUCCESS: Manual verification passed!")
+            print("SUCCESS: Reflection loop passed!")
             
     except Exception as e:
         print(f"ERROR: {e}")

@@ -1,7 +1,7 @@
 import redis
 import json
 from src.core.config import settings
-from datetime import datetime
+from datetime import datetime, timezone
 
 class ToolMemory:
     def __init__(self):
@@ -26,7 +26,7 @@ class ToolMemory:
         current_avg = stats["avg_latency_ms"]
         stats["avg_latency_ms"] = (current_avg * (stats["total_uses"] - 1) + duration_ms) / stats["total_uses"]
         
-        stats["last_used"] = datetime.utcnow().isoformat()
+        stats["last_used"] = datetime.now(timezone.utc).isoformat()
         
         self.redis.set(key, json.dumps(stats))
 
