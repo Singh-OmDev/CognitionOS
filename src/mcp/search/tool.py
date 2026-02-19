@@ -18,4 +18,5 @@ class SearchTool:
                 results = [r for r in ddgs.text(query, max_results=3)]
                 return str(results)
         except Exception as e:
+            print(f"DEBUG: Search error: {e}")
             return f"Error searching for '{query}': {str(e)}"

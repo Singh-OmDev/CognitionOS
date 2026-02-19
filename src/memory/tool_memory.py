@@ -8,19 +8,22 @@ class ToolMemory:
         self.redis = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
         self.prefix = "tool_stats:"
 
-    def update_tool_stats(self, tool_name: str, success: bool, duration_ms: float):
-        """Update usage statistics for a tool."""
+    def update_tool_stats(self, tool_name: str, success_score: float, duration_ms: float):
+        """
+        Update usage statistics for a tool using Alpha-Beta (Bayesian) updates.
+        success_score: 0.0 to 1.0 (1.0 = perfect success, 0.0 = total failure)
+        """
         key = f"{self.prefix}{tool_name}"
         
-        # Use a Lua script or transaction for atomicity in production, 
-        # but simple GET/SET is fine for prototype
         stats = self.get_tool_stats(tool_name)
         
         stats["total_uses"] += 1
-        if success:
-            stats["successes"] += 1
-        else:
-            stats["failures"] += 1
+        
+        # Bayesian update:
+        # Success adds to alpha (successes)
+        # Failure adds to beta (failures) based on score
+        stats["successes"] += success_score
+        stats["failures"] += (1.0 - success_score)
             
         # Update moving average latency
         current_avg = stats["avg_latency_ms"]

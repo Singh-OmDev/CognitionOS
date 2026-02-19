@@ -105,10 +105,29 @@ class Orchestrator:
         critique = state["critique"]
         plan = state["plan"]
         reflection = await self.reflector.reflect(critique, plan)
+        
+        # Learning Loop
+        print("[Orchestrator] Running Learning Loop...")
+        result = state.get("code_output", "No Output")
+        critique = state.get("critique", "No Critique")
+        
+        success = "approved" in critique.lower()
+        lesson = await self.reflector.extract_lesson(
+            {"plan": plan, "result": result, "critique": critique}, 
+            success=success
+        )
+        print(f"[Orchestrator] Lesson Learned: {lesson}")
+        
+        # Calculate Confidence Score (Mock for now, real implementation would use Critic's verdict)
+        confidence = 0.9 if success else 0.4
+
         return {
             "reflection": reflection, 
-            "current_agent": "reflector",
-            "loop_count": state.get("loop_count", 0) + 1
+            "current_agent": "Reflector",
+            "loop_count": state.get("loop_count", 0) + 1,
+            "lesson": lesson,
+            "confidence": confidence,
+            "step": state.get("loop_count", 0) + 1
         }
 
     async def run_workflow(self, user_input: str):

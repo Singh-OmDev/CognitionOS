@@ -26,7 +26,7 @@ class ResearcherAgent(BaseAgent):
         search_results = self.search_tool.run(query)
         
         # 2. Update Tool Memory (Success)
-        self.tool_mem.update_tool_stats("web_search", success=True, duration_ms=100.0)
+        self.tool_mem.update_tool_stats("web_search", success_score=1.0, duration_ms=100.0)
         
         # 3. Synthesize
         prompt = (

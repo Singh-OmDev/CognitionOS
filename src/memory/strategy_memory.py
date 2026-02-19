@@ -1,35 +1,35 @@
-from typing import List, Optional
-from langchain_core.documents import Document
 from .vector_store import VectorStore
+from .sql_store import SQLStore
 
 class StrategyMemory:
     def __init__(self):
-        # We reuse the VectorStore but targeting a specific collection or checking metadata
         self.vector_store = VectorStore(collection_name="cognition_strategies")
-
-    def save_strategy(self, goal: str, plan: str, outcome: str, metadata: Optional[dict] = None):
-        """Save a successful (or failed) strategy for future reference."""
-        full_text = f"GOAL: {goal}\nPLAN: {plan}\nOUTCOME: {outcome}"
+        # In future, link to SQL for structured feedback logs
         
-        if metadata is None:
-            metadata = {}
+    def retrieve_strategy(self, query: str) -> str:
+        """Retrieve relevant past strategies or lessons."""
+        docs = self.vector_store.query_similar(query, n_results=1)
+        if not docs:
+            return ""
+        return f"Past Strategy/Lesson: {docs[0].page_content}"
+
+    def find_similar_strategies(self, query: str, k: int = 3):
+        """Retrieve a list of similar strategies."""
+        return self.vector_store.query_similar(query, n_results=k)
+        
+    def store_lesson(self, query: str, lesson: str, score: float):
+        """Store a lesson learned from a specific query context."""
+        # Only store significant lessons
+        if score > 0.8:
+            prefix = "[SUCCESS PATTERN]"
+        elif score < 0.4:
+            prefix = "[FAILURE WARNING]"
+        else:
+            return # Ignore mediocre results to reduce noise
             
-        metadata.update({
-            "type": "strategy",
-            "goal": goal,
-            "outcome": outcome
-        })
+        content = f"{prefix} Context: {query} -> Lesson: {lesson}"
+        metadata = {"score": score, "type": "strategy"}
         
-        # Simple ID generation
+        # Use query as ID for simple deduplication (in real app, use content hash)
         import uuid
-        strategy_id = str(uuid.uuid4())
-        
-        self.vector_store.store_text(
-            text=full_text,
-            metadata=metadata,
-            id=strategy_id
-        )
-
-    def find_similar_strategies(self, current_goal: str, n_results: int = 3) -> List[Document]:
-        """Find strategies used for similar goals."""
-        return self.vector_store.query_similar(current_goal, n_results=n_results)
+        self.vector_store.store_text(content, metadata, str(uuid.uuid4()))
