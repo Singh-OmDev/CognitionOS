@@ -1,0 +1,14 @@
+langchain
+langgraph
+langchain-google-genai
+pydantic
+pydantic-settings
+fastapi
+uvicorn
+python-dotenv
+psycopg2-binary
+sqlalchemy
+redis
+chromadb
+pytest
+mcp

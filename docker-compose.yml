@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Episodic Memory & Structured Data
+  postgres:
+    image: postgres:15-alpine
+    container_name: cognition_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cognition}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cognition_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-cognition_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Tool Memory & Hot Cache
+  redis:
+    image: redis:7-alpine
+    container_name: cognition_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Semantic Memory (Vector DB)
+  # Using ChromaDB for local development
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: cognition_chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
